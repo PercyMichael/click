@@ -21,13 +21,22 @@ fn greet_and_date() -> String {
 
 #[tauri::command]
 fn track_mouse_events() {
+     // Initialize the device events handler with a polling interval of 0ms
     let event_handler = DeviceEventsHandler::new(Duration::from_millis(0))
         .expect("Could not initialize event loop");
 
+    // Register a key down event callback
+    // The guard is used to keep the callback alive
+    let _key_down_guard = device_events.on_key_down(|key: &Keycode| {
+        println!("Key down: {:?}", key);
+    });
+
+    // Register a mouse button up event callback
     let _mouse_button_guard = event_handler.on_mouse_up(|button: &MouseButton| {
         println!("Mouse button {:?} was released", button);
     });
 
+    // Keep the main thread alive to listen for events
     loop {
         // thread::sleep(Duration::from_secs(5));
     }
