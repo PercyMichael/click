@@ -2,6 +2,8 @@ use chrono::prelude::*;
 use device_query::{DeviceEvents, DeviceEventsHandler, MouseButton};
 use std::thread;
 use std::time::Duration;
+use tauri::Emitter;
+
 
 #[tauri::command]
 fn greet() -> String {
@@ -20,20 +22,21 @@ fn greet_and_date() -> String {
 }
 
 #[tauri::command]
-fn track_mouse_events() {
-     // Initialize the device events handler with a polling interval of 0ms
+fn track_mouse_events(app: tauri::AppHandle) {
+    // Initialize the device events handler with a polling interval of 0ms
     let event_handler = DeviceEventsHandler::new(Duration::from_millis(0))
-        .expect("Could not initialize event loop");
-
-    // Register a key down event callback
-    // The guard is used to keep the callback alive
-    let _key_down_guard = device_events.on_key_down(|key: &Keycode| {
-        println!("Key down: {:?}", key);
-    });
+        .expect("Could not initialize event loop");  
 
     // Register a mouse button up event callback
-    let _mouse_button_guard = event_handler.on_mouse_up(|button: &MouseButton| {
+    let _mouse_button_guard = event_handler.on_mouse_up(move |button: &MouseButton| {
         println!("Mouse button {:?} was released", button);
+
+        // Get the current time
+        let current_time = Local::now();
+        let time_string = current_time.format("%Y-%m-%d %H:%M:%S").to_string();
+
+        // Emit a greeting after mouse click, including the button information and time
+        app.emit("greet-on-mouse-click", format!("Mouse button {:?} was clicked at {}", button, time_string)).unwrap();
     });
 
     // Keep the main thread alive to listen for events
@@ -45,11 +48,15 @@ fn track_mouse_events() {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-    .setup(|_app| {
+    .setup(|app| {
         println!("App started successfully!");
 
-            // Spawn the mouse event tracking in a new thread
-            thread::spawn(track_mouse_events);
+        // Get a handle to the app and clone it
+        let app_handle = app.handle(); // Get the app handle
+        let app_handle_clone = app_handle.clone(); // Clone the app handle
+
+        // Spawn the mouse event tracking in a new thread, moving app into the closure
+        thread::spawn(move || track_mouse_events(app_handle_clone)); // Pass the cloned app handle
 
         Ok(())
     })

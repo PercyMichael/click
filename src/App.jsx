@@ -7,6 +7,7 @@ function App() {
   const [greeting, setGreet] = useState();
   const [message, setMessage] = useState("");
   const [mouseClickMessage, setMouseClickMessage] = useState("");
+  const [clickCount, setClickCount] = useState(0);
 
   const greet = async () => {
     const a = await invoke("greet");
@@ -27,8 +28,9 @@ function App() {
 
   useEffect(() => {
     // Listen for mouse click events from the backend
-    const unlisten = listen("mouse-click", (event) => {
+    const unlisten = listen("greet-on-mouse-click", (event) => {
       setMouseClickMessage(event.payload);
+      setClickCount((prevCount) => prevCount + 1);
     });
 
     // Cleanup the listener on component unmount
@@ -42,6 +44,7 @@ function App() {
       <h1>{greeting}</h1>
       <h1>{message}</h1>
       <h1>{mouseClickMessage}</h1>
+      <h2>Mouse Click Count: {clickCount}</h2>
       <button onClick={greet}>Greet Me</button>
       <button onClick={greetAndShowDate}>Greet and Show Current Date</button>
     </div>
